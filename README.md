@@ -3,7 +3,7 @@
 LLM assistant for bank staff comparing RAG, function calling, and MCP on the same banking use cases, with
 PII masking, role-based access, and a grounding verifier. Runs fully local (Ollama + Postgres/pgvector).
 
-[Eval report](eval/reports/results.md) · [Architecture](docs/architecture.md) · [Design decisions](docs/decisions.md) · [Request walkthrough](docs/walkthrough.md)
+[![CI](https://github.com/Rajakarthik09/banking-copilot/actions/workflows/ci.yml/badge.svg)](https://github.com/Rajakarthik09/banking-copilot/actions/workflows/ci.yml) · [Eval report](eval/reports/results.md) · [Architecture](docs/architecture.md) · [Design decisions](docs/decisions.md) · [Request walkthrough](docs/walkthrough.md)
 
 ## Use cases
 
