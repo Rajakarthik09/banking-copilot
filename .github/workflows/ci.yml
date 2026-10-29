@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: copilot
+          POSTGRES_PASSWORD: copilot
+          POSTGRES_DB: copilot
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U copilot -d copilot"
+          --health-interval 3s --health-timeout 3s --health-retries 20
+    env:
+      DB_URL: postgresql://copilot:copilot@localhost:5432/copilot
+      TEST_DB_URL: postgresql://copilot:copilot@localhost:5432/copilot_test
+      REQUIRE_DB: "1"   # DB-backed tests (RBAC!) must fail, not skip, if Postgres is missing
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: uv sync --frozen
+      - name: Lint
+        run: uv run ruff check .
+      - name: Tests (MockLLM, isolated test DB)
+        run: uv run pytest -q
+      - name: Mini eval (MockLLM, fails on any data leak)
+        run: uv run python eval/run_eval.py --mock --limit 10
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t banking-copilot:ci .

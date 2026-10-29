@@ -1,0 +1,6 @@
+# Ollama's default context window (2-4k tokens) silently truncates long prompts,
+# which drops the system prompt and tool schemas. Build a variant with 8k context:
+#   ollama create copilot-qwen -f ollama/Modelfile
+FROM qwen2.5:3b
+PARAMETER num_ctx 8192
+PARAMETER temperature 0

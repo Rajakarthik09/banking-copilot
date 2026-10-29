@@ -1,0 +1,57 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: copilot
+      POSTGRES_PASSWORD: copilot
+      POSTGRES_DB: copilot
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./data/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U copilot -d copilot"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: .
+    image: banking-copilot:latest
+    environment:
+      DB_URL: postgresql://copilot:copilot@db:5432/copilot
+      # Ollama runs natively on the host (containers on macOS get no GPU).
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434/v1}
+      LLM_API_KEY: ${LLM_API_KEY:-ollama}
+      LLM_MODEL: ${LLM_MODEL:-copilot-qwen}
+      EMBED_MODEL: ${EMBED_MODEL:-nomic-embed-text}
+      API_KEYS: ${API_KEYS:-rm1-demo-key:RM-1,rm2-demo-key:RM-2,rm3-demo-key:RM-3,rm4-demo-key:RM-4,rm5-demo-key:RM-5}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  ui:
+    image: banking-copilot:latest
+    command: ["streamlit", "run", "ui/streamlit_app.py", "--server.port", "8501", "--server.address", "0.0.0.0",
+              "--browser.gatherUsageStats", "false"]
+    environment:
+      API_URL: http://api:8000
+      API_KEYS: ${API_KEYS:-rm1-demo-key:RM-1,rm2-demo-key:RM-2,rm3-demo-key:RM-3,rm4-demo-key:RM-4,rm5-demo-key:RM-5}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "8501:8501"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  pgdata:
